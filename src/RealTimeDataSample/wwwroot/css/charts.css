@@ -1,0 +1,24 @@
+﻿svg.gauge {
+    width: 180px;
+    height: 300px;
+}
+
+g.axis .tick line, g.axis path {
+    stroke: black;
+    fill: none;
+}
+
+line.grid {
+    stroke: lightgray;
+    stroke-width: 1px;
+}
+
+line.min, line.max {
+    stroke: #d62728;
+    stroke-width: 1px;
+}
+
+rect.bar {
+    stroke: none;
+    fill: #1f77b4;
+}
