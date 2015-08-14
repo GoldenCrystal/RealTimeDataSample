@@ -15,7 +15,7 @@ using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Routing;
 using Microsoft.Data.Entity;
-using Microsoft.Framework.ConfigurationModel;
+using Microsoft.Framework.Configuration;
 using Microsoft.Framework.DependencyInjection;
 using Microsoft.Framework.Logging;
 using Microsoft.Framework.Logging.Console;
@@ -27,21 +27,21 @@ namespace RealTimeDataSample
 {
     public class Startup
     {
-        public Startup(IHostingEnvironment env)
+        public Startup(IHostingEnvironment env, IApplicationEnvironment appEnv)
         {
-            // Setup configuration sources.
-            var configuration = new Configuration()
-                .AddJsonFile("config.json")
-                .AddJsonFile($"config.{env.EnvironmentName}.json", optional: true);
+			// Setup configuration sources.
+			var builder = new ConfigurationBuilder(appEnv.ApplicationBasePath)
+				.AddJsonFile("config.json")
+				.AddJsonFile($"config.{env.EnvironmentName}.json", optional: true);
 
-            if (env.IsEnvironment("Development"))
+			if (env.IsEnvironment("Development"))
             {
-                // This reads the configuration keys from the secret store.
-                // For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
-                configuration.AddUserSecrets();
+				// This reads the configuration keys from the secret store.
+				// For more details on using the user secret store see http://go.microsoft.com/fwlink/?LinkID=532709
+				builder.AddUserSecrets();
             }
-            configuration.AddEnvironmentVariables();
-            Configuration = configuration;
+			builder.AddEnvironmentVariables();
+            Configuration = builder.Build();
         }
 
         public IConfiguration Configuration { get; set; }
@@ -53,7 +53,7 @@ namespace RealTimeDataSample
 			services.AddSingleton(typeof(PerformanceGenerator));
 
             // Add Application settings to the services container.
-            services.Configure<AppSettings>(Configuration.GetSubKey("AppSettings"));
+            //services.Configure<AppSettings>(Configuration.GetSubKey("AppSettings"));
 
 			services.AddSignalR();
 
@@ -66,53 +66,35 @@ namespace RealTimeDataSample
         }
 
         // Configure is called after ConfigureServices is called.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerfactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            // Configure the HTTP request pipeline.
+			loggerFactory.MinimumLevel = LogLevel.Information;
+			loggerFactory.AddConsole();
 
-            // Add the console logger.
-            loggerfactory.AddConsole(minLevel: LogLevel.Warning);
+			// Configure the HTTP request pipeline.
 
-            // Add the following to the request pipeline only in development environment.
-            if (env.IsEnvironment("Development"))
-            {
-                app.UseBrowserLink();
-                app.UseErrorPage(ErrorPageOptions.ShowAll);
-                app.UseDatabaseErrorPage(DatabaseErrorPageOptions.ShowAll);
-            }
-            else
-            {
-                // Add Error handling middleware which catches all application specific errors and
-                // sends the request to the following path or controller action.
-                app.UseErrorHandler("/Home/Error");
-            }
+			// Add the following to the request pipeline only in development environment.
+			if (env.IsDevelopment())
+			{
+				app.UseBrowserLink();
+				app.UseErrorPage();
+				app.UseDatabaseErrorPage(DatabaseErrorPageOptions.ShowAll);
+			}
+			else
+			{
+				// Add Error handling middleware which catches all application specific errors and
+				// sends the request to the following path or controller action.
+				app.UseErrorHandler("/index.html");
+			}
 
-            // Add static files to the request pipeline.
-            app.UseStaticFiles();
+			// Add static files to the request pipeline.
+			app.UseStaticFiles();
 
-            // Add cookie-based authentication to the request pipeline.
-            app.UseIdentity();
-
-			// Add authentication middleware to the request pipeline. You can configure options such as Id and Secret in the ConfigureServices method.
-			// For more information see http://go.microsoft.com/fwlink/?LinkID=532715
-			// app.UseFacebookAuthentication();
-			// app.UseGoogleAuthentication();
-			// app.UseMicrosoftAccountAuthentication();
-			// app.UseTwitterAuthentication();
-
+			// Add SignalR to the request pipeline.
 			app.UseSignalR();
 
             // Add MVC to the request pipeline.
-            app.UseMvc(routes =>
-            {
-                routes.MapRoute(
-                    name: "default",
-                    template: "{controller}/{action}/{id?}",
-                    defaults: new { controller = "Home", action = "Index" });
-
-                // Uncomment the following line to add a route for porting Web API 2 controllers.
-                // routes.MapWebApiRoute("DefaultApi", "api/{controller}/{id?}");
-            });
+            app.UseMvc();
 
 			app.ApplicationServices.GetRequiredService<PerformanceGenerator>();
         }
