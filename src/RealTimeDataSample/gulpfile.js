@@ -11,11 +11,11 @@ var paths = {
   lib: "./" + project.webroot + "/lib/"
 };
 
-gulp.task("clean", function (cb) {
+gulp.task("clean:lib", function (cb) {
   rimraf(paths.lib, cb);
 });
 
-gulp.task("copy", ["clean"], function () {
+gulp.task("copy:lib", ["clean:lib"], function () {
   var bower = {
     "bootstrap": "bootstrap/dist/**/*.{js,map,css,ttf,svg,woff,eot}",
     "jquery": "jquery/jquery*.{js,map}",
@@ -28,3 +28,6 @@ gulp.task("copy", ["clean"], function () {
       .pipe(gulp.dest(paths.lib + destinationDir));
   }
 });
+
+gulp.task("clean", ["clean:lib"]);
+gulp.task("copy", ["copy:lib"]);
